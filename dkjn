@@ -1,0 +1,65 @@
+[33mcommit 7b61f836f2e00ee55120cf4377f0f71700a50410[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mCursor[m[33m, [m[1;31morigin/Cursor[m[33m)[m
+Author: luisRoberto-401 <luis.fl142404@gmail.com>
+Date:   Mon Mar 24 00:57:45 2025 -0700
+
+    Login Arreglado
+
+[33mcommit c60a4d8a1956aa66595452ad9ab0f906024fe415[m
+Author: luisRoberto-401 <luis.fl142404@gmail.com>
+Date:   Mon Mar 17 22:00:15 2025 -0700
+
+    cursor
+    
+    ???
+
+[33mcommit 00feea1b22b057de07561753a2063d799f093e09[m
+Author: luisRoberto-401 <luis.fl142404@gmail.com>
+Date:   Mon Mar 17 19:16:39 2025 -0700
+
+    CRUD
+    
+    Finalizacion de los CRUD de cada componente
+
+[33mcommit 8f0350740aa87498ae9771d70e26a325005fbbee[m
+Author: luisRoberto-401 <luis.fl142404@gmail.com>
+Date:   Wed Mar 12 20:56:56 2025 -0700
+
+    FrontEnd
+    
+    Conexion del Backend con el FrontEnd
+
+[33mcommit 72cbb7308d54361f6b815f70a35af19a3a3f190a[m
+Author: luisRoberto-401 <luis.fl142404@gmail.com>
+Date:   Wed Mar 12 11:58:13 2025 -0700
+
+    si
+
+[33mcommit 04b7063b73d8a9f270dbd148bfbf78e9b521f255[m
+Author: luisRoberto-401 <luis.fl142404@gmail.com>
+Date:   Wed Mar 12 11:24:06 2025 -0700
+
+    backend actualizado
+    
+    intento de conectar el back con el front
+
+[33mcommit 1c9294fe4f0668fb51b30820f7c1582e01b028d7[m
+Author: luisRoberto-401 <luis.fl142404@gmail.com>
+Date:   Wed Mar 12 10:18:49 2025 -0700
+
+    FrontEnd
+    
+    agregar el frontend
+
+[33mcommit 30330e76ef6a0bda5fef1c10625dd8ac41df5619[m
+Author: luisRoberto-401 <luis.fl142404@gmail.com>
+Date:   Wed Mar 12 07:24:47 2025 -0700
+
+    Inicio
+    
+    Estructura inicial del proyecto
+
+[33mcommit 089b68dd1833abb949ba9eaf105971a4489f0c43[m[33m ([m[1;32mmain[m[33m)[m
+Author: luisRoberto-401 <luis.fl142404@gmail.com>
+Date:   Mon Mar 3 21:23:27 2025 -0700
+
+    Initial commit
