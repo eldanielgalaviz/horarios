@@ -14,6 +14,7 @@ import {
 } from 'react-bootstrap';
 import MainLayout from '../../components/layout/MainLayout';
 import axiosInstance from '../../api/axios';
+import { ChangeEvent, FormEvent } from 'react';
 
 interface Grupo {
   id: number;
@@ -140,7 +141,7 @@ const AsignacionHorarios: React.FC = () => {
   });
   
   // Función para manejar cambios en el formulario
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -177,9 +178,15 @@ const AsignacionHorarios: React.FC = () => {
       horaFin: '',
     });
   };
+  const handleSelectChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  };
   
   // Función para manejar envío del formulario
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     const data = {

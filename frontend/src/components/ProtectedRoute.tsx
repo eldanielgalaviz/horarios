@@ -1,10 +1,10 @@
-// src/components/ProtectedRoute.tsx
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../context/AuthContext';
+import { UserRole } from '../types/auth.types';
 
 interface ProtectedRouteProps {
-  allowedRoles: string[];
+  allowedRoles: UserRole[];
   requireJefeGrupo?: boolean;
 }
 
@@ -20,16 +20,16 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
   
   // Si el rol del usuario no está permitido para esta ruta
-  if (!allowedRoles.includes(authState.user.role)) {
+  if (!allowedRoles.includes(authState.user.userType)) {
     // Redirigir a la página por defecto según su rol
-    switch (authState.user.role) {
-      case 'admin':
+    switch (authState.user.userType) {
+      case UserRole.ADMIN:
         return <Navigate to="/admin/dashboard" replace />;
-      case 'profesor':
-        return <Navigate to="/profesor/horarios" replace />;
-      case 'estudiante':
-        return <Navigate to="/estudiante/horarios" replace />;
-      case 'checador':
+      case UserRole.MAESTRO:
+        return <Navigate to="/maestro/horarios" replace />;
+      case UserRole.ALUMNO:
+        return <Navigate to="/alumno/horarios" replace />;
+      case UserRole.CHECADOR:
         return <Navigate to="/checador/dashboard" replace />;
       default:
         return <Navigate to="/login" replace />;
@@ -37,8 +37,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
   
   // Si se requiere ser jefe de grupo pero el usuario no lo es
-  if (authState.user.role === 'estudiante' && requireJefeGrupo && !authState.user.esJefeGrupo) {
-    return <Navigate to="/estudiante/horarios" replace />;
+  if (authState.user.userType === UserRole.ALUMNO && requireJefeGrupo && !authState.user.esJefeGrupo) {
+    return <Navigate to="/alumno/horarios" replace />;
   }
   
   // Si pasa todas las validaciones, permitir acceso a las rutas secundarias

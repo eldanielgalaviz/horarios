@@ -9,6 +9,7 @@ import ActividadForm from '../../components/ActividadForm';
 import MainLayout from '../../components/layout/MainLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import axiosInstance from '../../api/axios';
+import { es } from 'date-fns/locale';
 
 interface Horario {
   id: number;

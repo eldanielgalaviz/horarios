@@ -1,37 +1,24 @@
-// src/pages/Login.tsx
 import React, { useState } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../context/AuthContext';
+import { UserRole } from '../types/auth.types';
 
 const Login: React.FC = () => {
-  const { login } = useAuth();
+  const { login, isLoading, error } = useAuth();
   const [credentials, setCredentials] = useState({
-    email: '',
-    password: '',
+    correo: '',
+    contraseña: '',
+    userType: UserRole.ALUMNO
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setCredentials(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
-    
-    try {
-      await login(credentials);
-    } catch (err: any) {
-      setError(
-        err.response?.data?.message || 
-        'Error al iniciar sesión. Verifica tus credenciales e intenta nuevamente.'
-      );
-    } finally {
-      setLoading(false);
-    }
+    await login(credentials);
   };
 
   return (
@@ -54,38 +41,53 @@ const Login: React.FC = () => {
                   <Form.Label>Correo electrónico</Form.Label>
                   <Form.Control
                     type="email"
-                    name="email"
-                    value={credentials.email}
+                    name="correo"
+                    value={credentials.correo}
                     onChange={handleChange}
                     placeholder="tu@ejemplo.com"
                     required
                   />
                 </Form.Group>
                 
-                <Form.Group className="mb-4">
+                <Form.Group className="mb-3">
                   <Form.Label>Contraseña</Form.Label>
                   <Form.Control
                     type="password"
-                    name="password"
-                    value={credentials.password}
+                    name="contraseña"
+                    value={credentials.contraseña}
                     onChange={handleChange}
                     placeholder="Contraseña"
                     required
                   />
                 </Form.Group>
                 
+                <Form.Group className="mb-4">
+                  <Form.Label>Tipo de usuario</Form.Label>
+                  <Form.Select 
+                    name="userType"
+                    value={credentials.userType}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value={UserRole.ALUMNO}>Alumno</option>
+                    <option value={UserRole.MAESTRO}>Maestro</option>
+                    <option value={UserRole.ADMIN}>Administrador</option>
+                    <option value={UserRole.CHECADOR}>Checador</option>
+                  </Form.Select>
+                </Form.Group>
+                
                 <Button 
                   variant="primary" 
                   type="submit" 
                   className="w-100" 
-                  disabled={loading}
+                  disabled={isLoading}
                 >
-                  {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+                  {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
                 </Button>
               </Form>
             </Card.Body>
             <Card.Footer className="text-center text-muted py-3">
-              <small>© 2025 Sistema de Horarios Escolares</small>
+              <small>© 2023 Sistema de Horarios Escolares</small>
             </Card.Footer>
           </Card>
         </Col>

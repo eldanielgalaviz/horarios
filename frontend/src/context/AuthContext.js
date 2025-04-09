@@ -1,46 +1,48 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AuthState, LoginCredentials, UserRole } from '../types/auth.types';
 import { authService } from '../api/auth.service';
-import { getAuth, setAuth } from '../utils/localStorage';
 import { jwtDecode } from 'jwt-decode';
 
-interface AuthContextType {
-  authState: AuthState;
-  login: (credentials: LoginCredentials) => Promise<void>;
-  logout: () => void;
-  isLoading: boolean;
-  error: string | null;
-}
+// Definir tipos directamente en este archivo
+export const UserRole = {
+  ADMIN: 'admin',
+  ALUMNO: 'alumno',
+  MAESTRO: 'maestro',
+  CHECADOR: 'checador'
+};
 
-const initialAuthState: AuthState = {
+// Interfaces para el contexto
+const initialAuthState = {
   isAuthenticated: false,
   user: null,
   token: null,
 };
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext(undefined);
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [authState, setAuthState] = useState<AuthState>(initialAuthState);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+export const AuthProvider = ({ children }) => {
+  const [authState, setAuthState] = useState(initialAuthState);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     // Check if user is already logged in
-    const auth = getAuth();
-    if (auth && auth.token) {
-      // Verify token expiration
+    const token = localStorage.getItem('auth');
+    if (token) {
       try {
-        const decoded: any = jwtDecode(auth.token);
-        const currentTime = Date.now() / 1000;
-        
-        if (decoded.exp && decoded.exp > currentTime) {
-          setAuthState(auth);
-        } else {
-          // Token expired
-          localStorage.removeItem('auth');
+        const authData = JSON.parse(token);
+        if (authData && authData.token) {
+          // Verify token expiration
+          const decoded = jwtDecode(authData.token);
+          const currentTime = Date.now() / 1000;
+          
+          if (decoded.exp && decoded.exp > currentTime) {
+            setAuthState(authData);
+          } else {
+            // Token expired
+            localStorage.removeItem('auth');
+          }
         }
       } catch (e) {
         // Invalid token
@@ -49,25 +51,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
-  const login = async (credentials: LoginCredentials) => {
+  const login = async (credentials) => {
     setIsLoading(true);
     setError(null);
     
     try {
       const response = await authService.login(credentials);
       
-      const newAuthState: AuthState = {
+      const newAuthState = {
         isAuthenticated: true,
         user: response.user,
         token: response.access_token,
       };
       
       setAuthState(newAuthState);
-      setAuth(newAuthState);
+      localStorage.setItem('auth', JSON.stringify(newAuthState));
       
       // Redirect based on user role
       redirectBasedOnRole(response.user.userType);
-    } catch (err: any) {
+    } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
       setIsLoading(false);
@@ -77,10 +79,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = () => {
     authService.logout();
     setAuthState(initialAuthState);
+    localStorage.removeItem('auth');
     navigate('/login');
   };
 
-  const redirectBasedOnRole = (role: UserRole) => {
+  const redirectBasedOnRole = (role) => {
     switch (role) {
       case UserRole.ADMIN:
         navigate('/admin/dashboard');

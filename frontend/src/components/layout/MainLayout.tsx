@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { UserRole } from '../../types/auth.types';
 import {
   AppBar,
@@ -36,9 +36,9 @@ interface MainLayoutProps {
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const { authState, logout } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -143,7 +143,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {authState.user?.userType === UserRole.ADMIN && 'Admin Panel'}
+            {authState && authState.user?.userType === UserRole.ADMIN && 'Admin Panel'}
             {authState.user?.userType === UserRole.ALUMNO && 'Student Portal'}
             {authState.user?.userType === UserRole.MAESTRO && 'Teacher Portal'}
             {authState.user?.userType === UserRole.CHECADOR && 'Attendance Management'}

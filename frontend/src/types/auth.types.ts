@@ -10,6 +10,7 @@ export interface User {
   nombre: string;
   correo: string;
   userType: UserRole;
+  esJefeGrupo?: boolean;
 }
 
 export interface AuthState {
