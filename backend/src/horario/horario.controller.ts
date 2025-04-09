@@ -1,43 +1,64 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards } from '@nestjs/common';
+// src/horario/horario.controller.ts
+import { Controller, Get, Post, Body, Put, Delete, Param, UseGuards, Req, Query } from '@nestjs/common';
 import { HorarioService } from './horario.service';
-import { CreateHorarioDto } from './dto/create-horario.dto';
-import { Horario } from '../entities/horario.entity';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '../auth/enums/role.enum';
 
 @Controller('horarios')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class HorarioController {
   constructor(private readonly horarioService: HorarioService) {}
 
-  @UseGuards(JwtAuthGuard)
-  @Post()
-  create(@Body() createHorarioDto: CreateHorarioDto): Promise<Horario> {
-    return this.horarioService.create(createHorarioDto);
-  }
-
   @Get()
-  findAll(): Promise<Horario[]> {
+  @Roles(Role.ADMIN, Role.CHECADOR)
+  findAll() {
     return this.horarioService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: number): Promise<Horario> {
-    return this.horarioService.findOne(id);
+  @Get('estudiante')
+  @Roles(Role.ALUMNO)
+  findForEstudiante(@Req() req) {
+    // Obtiene los horarios del estudiante loggeado
+    return this.horarioService.findByEstudiante(req.user.userId);
   }
-  
+
+  @Get('jefe-grupo')
+  @Roles(Role.ALUMNO)
+  findForJefeGrupo(@Req() req) {
+    // Obtiene los horarios del grupo donde el estudiante es jefe
+    return this.horarioService.findByJefeGrupo(req.user.userId);
+  }
+
+  @Get('profesor')
+  @Roles(Role.MAESTRO)
+  findForProfesor(@Req() req) {
+    // Obtiene los horarios asignados al profesor
+    return this.horarioService.findByProfesor(req.user.userId);
+  }
+
   @Get('grupo/:id')
-  findByGrupo(@Param('id') id: number): Promise<Horario[]> {
+  @Roles(Role.ADMIN, Role.CHECADOR, Role.ALUMNO)
+  findByGrupo(@Param('id') id: number) {
     return this.horarioService.findByGrupo(id);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Put(':id')
-  update(@Param('id') id: number, @Body() updateHorarioDto: CreateHorarioDto): Promise<Horario> {
-    return this.horarioService.update(id, updateHorarioDto);
+  @Post()
+  @Roles(Role.ADMIN, Role.CHECADOR)
+  create(@Body() horarioData) {
+    return this.horarioService.create(horarioData);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Put(':id')
+  @Roles(Role.ADMIN, Role.CHECADOR)
+  update(@Param('id') id: number, @Body() horarioData) {
+    return this.horarioService.update(id, horarioData);
+  }
+
   @Delete(':id')
-  remove(@Param('id') id: number): Promise<void> {
+  @Roles(Role.ADMIN, Role.CHECADOR)
+  remove(@Param('id') id: number) {
     return this.horarioService.remove(id);
   }
 }

@@ -1,126 +1,204 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
-import { Asistencia } from '../entities/asistencia.entity';
-import { CreateAsistenciaDto } from './dto/create-asistencia.dto';
-import { HorarioService } from '../horario/horario.service';
+import { Repository, Between, In, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
+import { AsistenciaProfesor } from './entities/asistencia-profesor.entity';
+import { Horario } from '../horario/entities/horario.entity';
+import { Estudiante } from '../estudiante/entities/estudiante.entity';
+import { User } from '../auth/entities/user.entity';
+import { Grupo } from '../grupo/entities/grupo.entity';
 
 @Injectable()
 export class AsistenciaService {
   constructor(
-    @InjectRepository(Asistencia)
-    private asistenciaRepository: Repository<Asistencia>,
-    private horarioService: HorarioService,
+    @InjectRepository(AsistenciaProfesor)
+    private asistenciaRepository: Repository<AsistenciaProfesor>,
+    @InjectRepository(Horario)
+    private horarioRepository: Repository<Horario>,
+    @InjectRepository(Estudiante)
+    private estudianteRepository: Repository<Estudiante>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+    @InjectRepository(Grupo)
+    private grupoRepository: Repository<Grupo>,
   ) {}
 
-  async create(createAsistenciaDto: CreateAsistenciaDto): Promise<Asistencia> {
-    // Verificar si el horario existe
-    const horario = await this.horarioService.findOne(createAsistenciaDto.Horario_ID);
+  async findAll(startDate?: string, endDate?: string) {
+    const whereCondition = this.createDateFilter(startDate, endDate);
     
-    // Verificar si ya existe una asistencia para este horario y fecha
-    const existingAsistencia = await this.asistenciaRepository.findOne({ 
-      where: { 
-        Horario: { ID: horario.ID },
-        Fecha: createAsistenciaDto.Fecha
-      } 
-    });
-    
-    if (existingAsistencia) {
-      throw new ConflictException('Ya existe un registro de asistencia para este horario y fecha');
-    }
-    
-    // Crear el nuevo registro de asistencia
-    const asistencia = this.asistenciaRepository.create({
-      Horario: horario,
-      Asistio: createAsistenciaDto.Asistio,
-      Fecha: createAsistenciaDto.Fecha
-    });
-    
-    return this.asistenciaRepository.save(asistencia);
-  }
-
-  async findAll(): Promise<Asistencia[]> {
-    return this.asistenciaRepository.find({ 
-      relations: ['Horario', 'Horario.Grupo', 'Horario.Materia', 'Horario.Materia.Maestro'] 
+    return this.asistenciaRepository.find({
+      where: whereCondition,
+      relations: ['horario', 'horario.profesor', 'horario.materia', 'horario.grupo'],
+      order: { fecha: 'DESC' }
     });
   }
 
-  async findOne(id: number): Promise<Asistencia> {
-    const asistencia = await this.asistenciaRepository.findOne({ 
-      where: { ID: id }, 
-      relations: ['Horario', 'Horario.Grupo', 'Horario.Materia', 'Horario.Materia.Maestro'] 
+  async findByProfesor(profesorId: number, startDate?: string, endDate?: string) {
+    // Encontrar horarios del profesor
+    const horarios = await this.horarioRepository.find({
+      where: { profesorId }
     });
     
-    if (!asistencia) {
-      throw new NotFoundException(`Asistencia con ID ${id} no encontrada`);
+    if (horarios.length === 0) {
+      return [];
     }
     
-    return asistencia;
-  }
-  
-  async findByHorario(horarioId: number): Promise<Asistencia[]> {
+    const horarioIds = horarios.map(h => h.id);
+    const whereCondition = {
+      horarioId: In(horarioIds),
+      ...this.createDateFilter(startDate, endDate)
+    };
+    
     return this.asistenciaRepository.find({
-      where: { Horario: { ID: horarioId } },
-      relations: ['Horario', 'Horario.Grupo', 'Horario.Materia', 'Horario.Materia.Maestro']
-    });
-  }
-  
-  async findByFecha(fechaInicio: Date, fechaFin: Date): Promise<Asistencia[]> {
-    return this.asistenciaRepository.find({
-      where: { 
-        Fecha: Between(fechaInicio, fechaFin) 
-      },
-      relations: ['Horario', 'Horario.Grupo', 'Horario.Materia', 'Horario.Materia.Maestro']
-    });
-  }
-  
-  async findByGrupoAndFecha(grupoId: number, fechaInicio: Date, fechaFin: Date): Promise<Asistencia[]> {
-    return this.asistenciaRepository.find({
-      where: { 
-        Horario: { Grupo: { ID_Grupo: grupoId } },
-        Fecha: Between(fechaInicio, fechaFin) 
-      },
-      relations: ['Horario', 'Horario.Grupo', 'Horario.Materia', 'Horario.Materia.Maestro']
-    });
-  }
-  
-  async findByMaestroAndFecha(maestroId: number, fechaInicio: Date, fechaFin: Date): Promise<Asistencia[]> {
-    return this.asistenciaRepository.find({
-      where: { 
-        Horario: { Materia: { Maestro: { ID_Maestro: maestroId } } },
-        Fecha: Between(fechaInicio, fechaFin) 
-      },
-      relations: ['Horario', 'Horario.Grupo', 'Horario.Materia', 'Horario.Materia.Maestro']
+      where: whereCondition,
+      relations: ['horario', 'horario.materia', 'horario.grupo'],
+      order: { fecha: 'DESC' }
     });
   }
 
-  async update(id: number, updateAsistenciaDto: CreateAsistenciaDto): Promise<Asistencia> {
-    const asistencia = await this.findOne(id);
+  async findByHorario(horarioId: number, startDate?: string, endDate?: string) {
+    const whereCondition = {
+      horarioId,
+      ...this.createDateFilter(startDate, endDate)
+    };
     
-    // Si se está actualizando el horario, verificar que exista
-    if (updateAsistenciaDto.Horario_ID) {
-      const horario = await this.horarioService.findOne(updateAsistenciaDto.Horario_ID);
-      asistencia.Horario = horario;
-    }
-    
-    // Actualizar estado de asistencia si se proporciona
-    if (updateAsistenciaDto.Asistio !== undefined) {
-      asistencia.Asistio = updateAsistenciaDto.Asistio;
-    }
-    
-    // Actualizar fecha si se proporciona
-    if (updateAsistenciaDto.Fecha) {
-      asistencia.Fecha = updateAsistenciaDto.Fecha;
-    }
-    
-    return this.asistenciaRepository.save(asistencia);
+    return this.asistenciaRepository.find({
+      where: whereCondition,
+      relations: ['horario', 'horario.profesor', 'horario.materia', 'horario.grupo'],
+      order: { fecha: 'DESC' }
+    });
   }
 
-  async remove(id: number): Promise<void> {
-    const result = await this.asistenciaRepository.delete(id);
+  async registrarAsistencia(data: {
+    horarioId: number; 
+    fecha: string; 
+    presente: boolean; 
+    observaciones: string;
+    registradoPor: number;
+  }) {
+    const { horarioId, fecha, presente, observaciones, registradoPor } = data;
     
-    if (result.affected === 0) {
-      throw new NotFoundException(`Asistencia con ID ${id} no encontrada`);
+    // Verificar que el horario existe
+    const horario = await this.horarioRepository.findOne({
+      where: { id: horarioId },
+      relations: ['grupo']
+    });
+    
+    if (!horario) {
+      throw new NotFoundException(`Horario con ID ${horarioId} no encontrado`);
     }
+    
+    // Verificar que el usuario tiene permiso para registrar asistencia
+    const user = await this.userRepository.findOne({ where: { id: registradoPor } });
+    
+    if (!user) {
+      throw new NotFoundException(`Usuario con ID ${registradoPor} no encontrado`);
+    }
+    
+    // Verificar si es jefe de grupo o checador
+    let puedeRegistrar = false;
+    
+    if (user.role === 'checador' || user.role === 'admin') {
+      puedeRegistrar = true;
+    } else if (user.role === 'estudiante') {
+      // Verificar si es jefe del grupo asignado a este horario
+      const estudiante = await this.estudianteRepository.findOne({
+        where: { userId: registradoPor }
+      });
+      
+      if (estudiante && estudiante.esJefeGrupo) {
+        const grupo = await this.grupoRepository.findOne({
+          where: { jefeGrupoId: estudiante.id }
+        });
+        
+        if (grupo && grupo.id === horario.grupoId) {
+          puedeRegistrar = true;
+        }
+      }
+    }
+    
+    if (!puedeRegistrar) {
+      throw new ForbiddenException('No tiene permiso para registrar asistencia en este horario');
+    }
+    
+    // Verificar si ya existe registro para esta fecha y horario
+    const registroExistente = await this.asistenciaRepository.findOne({
+      where: { horarioId, fecha }
+    });
+    
+    if (registroExistente) {
+      // Actualizar registro existente
+      registroExistente.presente = presente;
+      registroExistente.observaciones = observaciones;
+      registroExistente.registradoPor = registradoPor;
+      
+      return this.asistenciaRepository.save(registroExistente);
+    }
+    
+    // Crear nuevo registro
+    const nuevoRegistro = this.asistenciaRepository.create({
+      horarioId,
+      fecha,
+      presente,
+      observaciones,
+      registradoPor
+    });
+    
+    return this.asistenciaRepository.save(nuevoRegistro);
+  }
+
+  async markAttendance(attendance) {
+    try {
+      return await this.asistenciaRepository.save(attendance);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getAllAttendance() {
+    try {
+      return await this.asistenciaRepository.find({
+        relations: ['horario', 'horario.profesor', 'horario.materia', 'horario.grupo']
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async update(id: number, attendance) {
+    try {
+      await this.asistenciaRepository.update(id, attendance);
+      return this.findOne(id);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async remove(id: number) {
+    try {
+      await this.asistenciaRepository.delete(id);
+      return { message: `Asistencia con ID ${id} ha sido eliminada` };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  private createDateFilter(startDate?: string, endDate?: string) {
+    if (!startDate && !endDate) {
+      return {};
+    }
+    
+    if (startDate && endDate) {
+      return { fecha: Between(new Date(startDate), new Date(endDate)) };
+    }
+    
+    if (startDate) {
+      return { fecha: MoreThanOrEqual(new Date(startDate)) };
+    }
+    
+    if (endDate) {
+      return { fecha: LessThanOrEqual(new Date(endDate)) };
+    }
+    
+    return {};
   }
 }

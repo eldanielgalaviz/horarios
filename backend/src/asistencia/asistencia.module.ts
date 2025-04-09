@@ -1,20 +1,19 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Asistencia } from '../entities/asistencia.entity';
 import { AsistenciaController } from './asistencia.controller';
 import { AsistenciaService } from './asistencia.service';
-import { HorarioModule } from '../horario/horario.module';
-import { AlumnoModule } from '../alumno/alumno.module';
+import { AsistenciaProfesor } from './entities/asistencia-profesor.entity';
+import { Horario } from '../horario/entities/horario.entity';
+import { Estudiante } from '../estudiante/entities/estudiante.entity';
+import { User } from '../auth/entities/user.entity';
+import { Grupo } from '../grupo/entities/grupo.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Asistencia]),
-    forwardRef(() => HorarioModule), // Usa forwardRef si hay dependencia circular
-    forwardRef(() => AlumnoModule),  // Usa forwardRef si hay dependencia circular
-    // Otros módulos que podrían necesitar forwardRef
+    TypeOrmModule.forFeature([AsistenciaProfesor, Horario, Estudiante, User, Grupo])
   ],
   controllers: [AsistenciaController],
   providers: [AsistenciaService],
-  exports: [AsistenciaService],
+  exports: [AsistenciaService]
 })
 export class AsistenciaModule {}
