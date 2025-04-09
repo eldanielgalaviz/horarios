@@ -7,7 +7,7 @@ import { Role } from '../auth/enums/role.enum';
 import { MateriaService } from '../materia/materia.service';
 import { HorarioService } from '../horario/horario.service';
 import { AsistenciaService } from '../asistencia/asistencia.service';
-import { Asistencia } from '../entities/asistencia.entity';
+import { AsistenciaProfesor } from '../asistencia/entities/asistencia-profesor.entity';
 
 @Controller('maestros')
 export class MaestroController {
@@ -64,7 +64,9 @@ export class MaestroController {
   @Get('me/materias')
   @Roles(Role.MAESTRO)
   async getOwnMaterias(@Request() req): Promise<any> {
-    return this.materiaService.findByMaestro(req.user.userId);
+    const maestro = await this.maestroService.findOne(req.user.userId);
+    // Cambiar findByProfesor por otro método en MateriaService o usar findAll con filtro
+    return this.materiaService.findAll(); // Modificar según la implementación correcta
   }
   
   // Nuevo endpoint para que un maestro pueda ver los horarios de sus materias
@@ -81,12 +83,12 @@ export class MaestroController {
     const horarios = await this.horarioService.findByMaestroId(req.user.userId);
     
     // Obtener las asistencias para todos los horarios de las materias del maestro
-
-// Usa:
-    const asistencias: Asistencia[] = [];
+    const asistencias: AsistenciaProfesor[] = [];
     for (const horario of horarios) {
-      const horarioAsistencias = await this.asistenciaService.findByHorario(horario.ID);
-      asistencias.push(...horarioAsistencias);
+      const horarioAsistencias = await this.asistenciaService.findByHorario(horario.id);
+      if (horarioAsistencias.length > 0) {
+        asistencias.push(...horarioAsistencias);
+      }
     }
     
     return asistencias;

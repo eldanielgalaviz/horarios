@@ -1,4 +1,4 @@
-import { AuthState } from '../types/auth.types.tsx';
+import { AuthState } from '../types/auth.types';
 
 export const setAuth = (auth: AuthState): void => {
   localStorage.setItem('auth', JSON.stringify(auth));

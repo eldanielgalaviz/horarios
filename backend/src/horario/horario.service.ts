@@ -87,6 +87,24 @@ export class HorarioService {
     });
   }
 
+  // Método para maestro.controller.ts
+  async findByMaestroId(maestroId: number) {
+    // Buscar al profesor por el ID de usuario
+    const profesor = await this.profesorRepository.findOne({
+      where: { userId: maestroId }
+    });
+    
+    if (!profesor) {
+      throw new NotFoundException(`Profesor con ID de usuario ${maestroId} no encontrado`);
+    }
+    
+    // Usar el ID del profesor para buscar sus horarios
+    return this.horarioRepository.find({
+      where: { profesorId: profesor.id },
+      relations: ['materia', 'grupo']
+    });
+  }
+
   async findByGrupo(grupoId: number) {
     return this.horarioRepository.find({
       where: { grupoId },

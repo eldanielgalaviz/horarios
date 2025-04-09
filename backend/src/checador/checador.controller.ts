@@ -49,9 +49,15 @@ export class ChecadorController {
   // Nuevo endpoint para permitir a los checadores registrar asistencia para cualquier horario
   @Post('asistencias/register')
   @Roles(Role.ADMIN, Role.CHECADOR)
-  async registerAttendance(@Body() createAsistenciaDto: CreateAsistenciaDto): Promise<any> {
+  async registerAttendance(@Body() data: { 
+    horarioId: number; 
+    fecha: string; 
+    presente: boolean; 
+    observaciones?: string;
+    registradoPor: number;
+  }): Promise<any> {
     // El checador puede registrar asistencia para cualquier horario sin restricciones
-    return this.asistenciaService.create(createAsistenciaDto);
+    return this.asistenciaService.registrarAsistencia(data);
   }
   
   // Nuevo endpoint para ver todos los horarios (útil para el checador)

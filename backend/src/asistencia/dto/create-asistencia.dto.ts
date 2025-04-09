@@ -1,5 +1,4 @@
-// src/asistencia/dto/create-asistencia.dto.ts
-import { IsNotEmpty, IsNumber, IsBoolean, IsDate } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsBoolean, IsDate, IsOptional, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateAsistenciaDto {
@@ -8,11 +7,10 @@ export class CreateAsistenciaDto {
   Horario_ID: number;
 
   @IsNotEmpty()
-  @IsBoolean()
-  Asistio: boolean;
-
-  @IsNotEmpty()
-  @Type(() => Date)
-  @IsDate()
-  Fecha: Date;
+  @IsString()
+  fecha: string;
+  
+  @IsOptional()
+  @IsString()
+  observaciones?: string;
 }

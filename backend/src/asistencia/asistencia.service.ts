@@ -68,11 +68,24 @@ export class AsistenciaService {
     });
   }
 
+  async findOne(id: number) {
+    const asistencia = await this.asistenciaRepository.findOne({
+      where: { id },
+      relations: ['horario', 'horario.profesor', 'horario.materia', 'horario.grupo']
+    });
+    
+    if (!asistencia) {
+      throw new NotFoundException(`Asistencia con ID ${id} no encontrada`);
+    }
+    
+    return asistencia;
+  }
+
   async registrarAsistencia(data: {
     horarioId: number; 
     fecha: string; 
     presente: boolean; 
-    observaciones: string;
+    observaciones?: string;
     registradoPor: number;
   }) {
     const { horarioId, fecha, presente, observaciones, registradoPor } = data;
@@ -122,13 +135,18 @@ export class AsistenciaService {
     
     // Verificar si ya existe registro para esta fecha y horario
     const registroExistente = await this.asistenciaRepository.findOne({
-      where: { horarioId, fecha }
+      where: { 
+        horarioId,
+        fecha: new Date(fecha)
+      }
     });
     
     if (registroExistente) {
       // Actualizar registro existente
       registroExistente.presente = presente;
-      registroExistente.observaciones = observaciones;
+      if (observaciones) {
+        registroExistente.observaciones = observaciones;
+      }
       registroExistente.registradoPor = registradoPor;
       
       return this.asistenciaRepository.save(registroExistente);
@@ -137,7 +155,7 @@ export class AsistenciaService {
     // Crear nuevo registro
     const nuevoRegistro = this.asistenciaRepository.create({
       horarioId,
-      fecha,
+      fecha: new Date(fecha),
       presente,
       observaciones,
       registradoPor
@@ -146,7 +164,7 @@ export class AsistenciaService {
     return this.asistenciaRepository.save(nuevoRegistro);
   }
 
-  async markAttendance(attendance) {
+  async create(attendance) {
     try {
       return await this.asistenciaRepository.save(attendance);
     } catch (error) {

@@ -1,13 +1,10 @@
-// src/actividad/actividad.service.ts
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository, Between, In, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
 import { ActividadClase } from './entities/actividad-clase.entity';
 import { Horario } from '../horario/entities/horario.entity';
 import { Estudiante } from '../estudiante/entities/estudiante.entity';
-import { Estudiante } from '../';
 import { Grupo } from '../grupo/entities/grupo.entity';
-import { In, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
 
 @Injectable()
 export class ActividadService {
@@ -91,7 +88,7 @@ export class ActividadService {
     
     // Verificar si ya existe registro para esta fecha y horario
     const registroExistente = await this.actividadRepository.findOne({
-      where: { horarioId, fecha }
+      where: { horarioId, fecha: new Date(fecha) }
     });
     
     if (registroExistente) {
@@ -106,7 +103,7 @@ export class ActividadService {
     // Crear nuevo registro
     const nuevaActividad = this.actividadRepository.create({
       horarioId,
-      fecha,
+      fecha: new Date(fecha),
       tema,
       actividades,
       tareas,
@@ -129,6 +126,10 @@ export class ActividadService {
       return { fecha: MoreThanOrEqual(new Date(startDate)) };
     }
     
-    return { fecha: LessThanOrEqual(new Date(endDate)) };
+    if (endDate) {
+      return { fecha: LessThanOrEqual(new Date(endDate)) };
+    }
+    
+    return {};
   }
 }

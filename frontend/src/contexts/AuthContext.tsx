@@ -1,16 +1,27 @@
+// src/contexts/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AuthState, LoginCredentials, User, UserRole } from '../types/auth.types.ts';
-import { authService } from '../api/auth.service.ts';
-import { getAuth, setAuth } from '../utils/localStorage.ts';
-import { jwtDecode } from 'jwt-decode';
+import axiosInstance from '../api/axios';
+import jwt_decode from 'jwt-decode';
+
+interface User {
+  id: number;
+  nombre: string;
+  email: string;
+  role: 'estudiante' | 'profesor' | 'checador' | 'admin';
+  esJefeGrupo?: boolean;
+}
+
+interface AuthState {
+  isAuthenticated: boolean;
+  user: User | null;
+  token: string | null;
+}
 
 interface AuthContextType {
   authState: AuthState;
-  login: (credentials: LoginCredentials) => Promise<void>;
+  login: (credentials: { email: string; password: string }) => Promise<void>;
   logout: () => void;
-  isLoading: boolean;
-  error: string | null;
 }
 
 const initialAuthState: AuthState = {
@@ -23,76 +34,106 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [authState, setAuthState] = useState<AuthState>(initialAuthState);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const navigate = useNavigate();
 
+  // Verificar token existente al cargar
   useEffect(() => {
-    // Check if user is already logged in
-    const auth = getAuth();
-    if (auth && auth.token) {
-      // Verify token expiration
+    const token = localStorage.getItem('token');
+    if (token) {
       try {
-       // Asumiendo que tienes un token en auth.token
-       const decoded = jwtDecode<any>(auth.token);
+        // Verificar que el token sea válido y no esté expirado
+        const decoded: any = jwt_decode(token);
         const currentTime = Date.now() / 1000;
         
-        if (decoded.exp && decoded.exp > currentTime) {
-          setAuthState(auth);
+        if (decoded.exp > currentTime) {
+          // Token válido, obtener información del usuario
+          axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          getUserInfo(token);
         } else {
-          // Token expired
-          localStorage.removeItem('auth');
+          // Token expirado
+          localStorage.removeItem('token');
+          setAuthState(initialAuthState);
         }
-      } catch (e) {
-        // Invalid token
-        localStorage.removeItem('auth');
+      } catch (error) {
+        console.error('Error decoding token:', error);
+        localStorage.removeItem('token');
+        setAuthState(initialAuthState);
       }
     }
+    setLoading(false);
   }, []);
 
-  const login = async (credentials: LoginCredentials) => {
-    setIsLoading(true);
-    setError(null);
-    
+  // Obtener información del usuario actual
+  const getUserInfo = async (token: string) => {
     try {
-      const response = await authService.login(credentials);
+      const response = await axiosInstance.get('/auth/profile');
+      const userData = response.data;
       
-      const newAuthState: AuthState = {
+      setAuthState({
         isAuthenticated: true,
-        user: response.user,
-        token: response.access_token,
-      };
-      
-      setAuthState(newAuthState);
-      setAuth(newAuthState);
-      
-      // Redirect based on user role
-      redirectBasedOnRole(response.user.userType);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
-    } finally {
-      setIsLoading(false);
+        user: userData,
+        token,
+      });
+    } catch (error) {
+      console.error('Error fetching user info:', error);
+      localStorage.removeItem('token');
+      setAuthState(initialAuthState);
     }
   };
 
+  // Login
+  const login = async (credentials: { email: string; password: string }) => {
+    try {
+      const response = await axiosInstance.post('/auth/login', credentials);
+      const { token, user } = response.data;
+      
+      // Guardar token en localStorage
+      localStorage.setItem('token', token);
+      
+      // Establecer token en headers para futuras peticiones
+      axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+      setAuthState({
+        isAuthenticated: true,
+        user,
+        token,
+      });
+      
+      // Redirigir basado en el rol del usuario
+      redirectBasedOnRole(user.role, user.esJefeGrupo);
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
+  };
+
+  // Logout
   const logout = () => {
-    authService.logout();
+    localStorage.removeItem('token');
+    delete axiosInstance.defaults.headers.common['Authorization'];
     setAuthState(initialAuthState);
     navigate('/login');
   };
 
-  const redirectBasedOnRole = (role: UserRole) => {
+  // Redirigir según el rol del usuario
+  const redirectBasedOnRole = (role: string, esJefeGrupo?: boolean) => {
     switch (role) {
-      case UserRole.ADMIN:
+      case 'admin':
         navigate('/admin/dashboard');
         break;
-      case UserRole.ALUMNO:
-        navigate('/alumno/dashboard');
+      case 'profesor':
+        navigate('/profesor/horarios');
         break;
-      case UserRole.MAESTRO:
-        navigate('/maestro/dashboard');
+      case 'estudiante':
+        // Si es jefe de grupo, redirigir a una página específica
+        if (esJefeGrupo) {
+          navigate('/jefe-grupo/dashboard');
+        } else {
+          navigate('/estudiante/horarios');
+        }
         break;
-      case UserRole.CHECADOR:
+      case 'checador':
         navigate('/checador/dashboard');
         break;
       default:
@@ -100,8 +141,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  if (loading) {
+    return <div>Cargando...</div>;
+  }
+
   return (
-    <AuthContext.Provider value={{ authState, login, logout, isLoading, error }}>
+    <AuthContext.Provider value={{ authState, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
@@ -109,8 +154,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+  if (!context) {
+    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
   }
   return context;
 };

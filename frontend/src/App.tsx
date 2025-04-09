@@ -7,13 +7,23 @@ import { UserRole } from './types/auth.types.ts';
 
 // Pages
 import LoginPage from './pages/login.tsx';
+
 // Admin Pages
 import AdminDashboard from './pages/admin/AdminDashboard.tsx';
-import AdminUsers from './pages/admin/UserManagement.tsx';
+import UserManagement from './pages/admin/UserManagement.tsx';
+import GrupoManagement from './pages/admin/Grupo.Management.tsx';
+import MateriaManagement from './pages/admin/Materia.Management.tsx';
+import SalonManagement from './pages/admin/SalonManagement.tsx';
+import AlumnoManagement from './pages/admin/AlumnoManagement.tsx';
+import MaestrosManagement from './pages/admin/MaestrosManagement.tsx';
+import ChecadorManagement from './pages/admin/ChecadorManagement.tsx';
+import AsistenciaReports from './pages/admin/AsistenciaReports.tsx';
+
 // Student Pages
 import AlumnoDashboard from './pages/alumno/AlumnoDashboard.tsx';
 import AlumnoHorarios from './pages/alumno/Horarios.tsx';
 import AlumnoAsistencias from './pages/alumno/Asistencias.tsx';
+
 // Teacher Pages
 import MaestroDashboard from './pages/maestro/MaestroDashboard.tsx';
 import MisMaterias from './pages/maestro/MisMaterias.tsx';
@@ -39,7 +49,14 @@ const App: React.FC = () => {
             {/* Admin routes */}
             <Route element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} />}>
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/admin/users" element={<AdminUsers />} />
+              <Route path="/admin/users" element={<UserManagement />} />
+              <Route path="/admin/grupos" element={<GrupoManagement />} />
+              <Route path="/admin/materias" element={<MateriaManagement />} />
+              <Route path="/admin/salones" element={<SalonManagement />} />
+              <Route path="/admin/alumnos" element={<AlumnoManagement />} />
+              <Route path="/admin/maestros" element={<MaestrosManagement />} />
+              <Route path="/admin/checadores" element={<ChecadorManagement />} />
+              <Route path="/admin/asistencias" element={<AsistenciaReports />} />
             </Route>
             
             {/* Student routes */}

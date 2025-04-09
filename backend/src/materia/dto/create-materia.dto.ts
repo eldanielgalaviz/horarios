@@ -3,13 +3,17 @@ import { IsNotEmpty, IsString, IsNumber } from 'class-validator';
 export class CreateMateriaDto {
   @IsNotEmpty()
   @IsString()
-  Nombre: string;
+  nombre: string;
+
+  @IsNotEmpty()
+  @IsString()
+  codigo: string;
 
   @IsNotEmpty()
   @IsNumber()
-  Maestro_ID: number;
+  creditos: number;
 
   @IsNotEmpty()
   @IsNumber()
-  Salon_ID: number;
+  profesorId: number;
 }

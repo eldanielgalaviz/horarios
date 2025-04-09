@@ -3,6 +3,7 @@ import { Grupo } from '../../grupo/entities/grupo.entity';
 import { Materia } from '../../materia/entities/materia.entity';
 import { Profesor } from '../../profesor/entities/profesor.entity';
 import { AsistenciaProfesor } from '../../asistencia/entities/asistencia-profesor.entity';
+import { ActividadClase } from '../../actividad/entities/actividad-clase.entity';
 
 @Entity()
 export class Horario {
@@ -44,4 +45,7 @@ export class Horario {
 
   @OneToMany(() => AsistenciaProfesor, asistencia => asistencia.horario)
   asistencias: AsistenciaProfesor[];
+
+  @OneToMany(() => ActividadClase, actividad => actividad.horario)
+  actividades: ActividadClase[];
 }

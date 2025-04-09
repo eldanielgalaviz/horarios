@@ -1,7 +1,7 @@
 import axios from 'axios';
-import { getToken } from '../utils/localStorage.ts';
+import { getToken } from '../utils/localStorage';
 
-const API_URL = 'http://localhost:3000'; 
+const API_URL = 'http://localhost:3000'; // Ajusta esta URL a tu API del backend
 
 const axiosInstance = axios.create({
   baseURL: API_URL,

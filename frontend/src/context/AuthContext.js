@@ -1,96 +1,106 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import API from '../services/api';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AuthState, LoginCredentials, UserRole } from '../types/auth.types';
+import { authService } from '../api/auth.service';
+import { getAuth, setAuth } from '../utils/localStorage';
+import { jwtDecode } from 'jwt-decode';
 
-const AuthContext = createContext(null);
+interface AuthContextType {
+  authState: AuthState;
+  login: (credentials: LoginCredentials) => Promise<void>;
+  logout: () => void;
+  isLoading: boolean;
+  error: string | null;
+}
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+const initialAuthState: AuthState = {
+  isAuthenticated: false,
+  user: null,
+  token: null,
+};
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [authState, setAuthState] = useState<AuthState>(initialAuthState);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    checkAuth();
+    // Check if user is already logged in
+    const auth = getAuth();
+    if (auth && auth.token) {
+      // Verify token expiration
+      try {
+        const decoded: any = jwtDecode(auth.token);
+        const currentTime = Date.now() / 1000;
+        
+        if (decoded.exp && decoded.exp > currentTime) {
+          setAuthState(auth);
+        } else {
+          // Token expired
+          localStorage.removeItem('auth');
+        }
+      } catch (e) {
+        // Invalid token
+        localStorage.removeItem('auth');
+      }
+    }
   }, []);
 
-  const checkAuth = async () => {
+  const login = async (credentials: LoginCredentials) => {
+    setIsLoading(true);
+    setError(null);
+    
     try {
-      const token = localStorage.getItem('token');
-      const storedUser = localStorage.getItem('user');
-      if (token && storedUser) {
-        setUser(JSON.parse(storedUser));
-      } else {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setUser(null);
-      }
-    } catch (error) {
-      console.error('Error checking auth:', error);
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      setUser(null);
+      const response = await authService.login(credentials);
+      
+      const newAuthState: AuthState = {
+        isAuthenticated: true,
+        user: response.user,
+        token: response.access_token,
+      };
+      
+      setAuthState(newAuthState);
+      setAuth(newAuthState);
+      
+      // Redirect based on user role
+      redirectBasedOnRole(response.user.userType);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const login = async (credentials) => {
-    try {
-      console.log('Iniciando login con credenciales:', credentials);
-      const response = await API.login(credentials);
-      console.log('Respuesta del servidor en AuthContext:', response);
-      
-      if (!response || !response.token) {
-        console.error('Respuesta inválida del servidor:', response);
-        throw new Error('Respuesta inválida del servidor');
-      }
-
-      const { token, ...userData } = response;
-      console.log('Token recibido:', token);
-      console.log('Datos del usuario:', userData);
-      
-      // Limpiar cualquier dato anterior
-      localStorage.clear();
-      
-      // Guardar nuevos datos
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(userData));
-      
-      // Actualizar estado
-      setUser(userData);
-      
-      return userData;
-    } catch (error) {
-      console.error('Error detallado en AuthContext login:', error);
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      setUser(null);
-      throw error;
+      setIsLoading(false);
     }
   };
 
   const logout = () => {
-    setUser(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    authService.logout();
+    setAuthState(initialAuthState);
+    navigate('/login');
   };
 
-  const isAdmin = () => {
-    return user?.role === 'admin';
+  const redirectBasedOnRole = (role: UserRole) => {
+    switch (role) {
+      case UserRole.ADMIN:
+        navigate('/admin/dashboard');
+        break;
+      case UserRole.ALUMNO:
+        navigate('/alumno/dashboard');
+        break;
+      case UserRole.MAESTRO:
+        navigate('/maestro/dashboard');
+        break;
+      case UserRole.CHECADOR:
+        navigate('/checador/dashboard');
+        break;
+      default:
+        navigate('/login');
+    }
   };
-
-  const isTeacher = () => {
-    return user?.role === 'teacher';
-  };
-
-  const isStudent = () => {
-    return user?.role === 'student';
-  };
-
-  if (loading) {
-    return <div>Cargando...</div>;
-  }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAdmin, isTeacher, isStudent }}>
+    <AuthContext.Provider value={{ authState, login, logout, isLoading, error }}>
       {children}
     </AuthContext.Provider>
   );
@@ -98,8 +108,8 @@ export const AuthProvider = ({ children }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}; 
+};

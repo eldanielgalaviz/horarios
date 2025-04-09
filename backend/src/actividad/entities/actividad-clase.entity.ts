@@ -1,4 +1,3 @@
-// src/actividad/entities/actividad-clase.entity.ts
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
 import { Horario } from '../../horario/entities/horario.entity';
 
