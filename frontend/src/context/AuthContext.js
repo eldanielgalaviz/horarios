@@ -1,54 +1,42 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../api/auth.service';
-import { jwtDecode } from 'jwt-decode';
+import { getAuth, setAuth } from '../utils/localStorage';
+import jwt_decode from 'jwt-decode';
 
-// Definir tipos directamente en este archivo
-export const UserRole = {
-  ADMIN: 'admin',
-  ALUMNO: 'alumno',
-  MAESTRO: 'maestro',
-  CHECADOR: 'checador'
-};
-
-// Interfaces para el contexto
-const initialAuthState = {
-  isAuthenticated: false,
-  user: null,
-  token: null,
-};
-
-const AuthContext = createContext(undefined);
+const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [authState, setAuthState] = useState(initialAuthState);
-  const [isLoading, setIsLoading] = useState(false);
+  const [authState, setAuthState] = useState({
+    isAuthenticated: false,
+    user: null,
+    token: null,
+  });
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     // Check if user is already logged in
-    const token = localStorage.getItem('auth');
-    if (token) {
+    const auth = getAuth();
+    if (auth && auth.token) {
+      // Verify token expiration
       try {
-        const authData = JSON.parse(token);
-        if (authData && authData.token) {
-          // Verify token expiration
-          const decoded = jwtDecode(authData.token);
-          const currentTime = Date.now() / 1000;
-          
-          if (decoded.exp && decoded.exp > currentTime) {
-            setAuthState(authData);
-          } else {
-            // Token expired
-            localStorage.removeItem('auth');
-          }
+        const decoded = jwt_decode(auth.token);
+        const currentTime = Date.now() / 1000;
+        
+        if (decoded.exp && decoded.exp > currentTime) {
+          setAuthState(auth);
+        } else {
+          // Token expired
+          localStorage.removeItem('auth');
         }
       } catch (e) {
         // Invalid token
         localStorage.removeItem('auth');
       }
     }
+    setIsLoading(false);
   }, []);
 
   const login = async (credentials) => {
@@ -65,7 +53,7 @@ export const AuthProvider = ({ children }) => {
       };
       
       setAuthState(newAuthState);
-      localStorage.setItem('auth', JSON.stringify(newAuthState));
+      setAuth(newAuthState);
       
       // Redirect based on user role
       redirectBasedOnRole(response.user.userType);
@@ -78,23 +66,26 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     authService.logout();
-    setAuthState(initialAuthState);
-    localStorage.removeItem('auth');
+    setAuthState({
+      isAuthenticated: false,
+      user: null,
+      token: null,
+    });
     navigate('/login');
   };
 
   const redirectBasedOnRole = (role) => {
     switch (role) {
-      case UserRole.ADMIN:
+      case 'admin':
         navigate('/admin/dashboard');
         break;
-      case UserRole.ALUMNO:
+      case 'alumno':
         navigate('/alumno/dashboard');
         break;
-      case UserRole.MAESTRO:
+      case 'maestro':
         navigate('/maestro/dashboard');
         break;
-      case UserRole.CHECADOR:
+      case 'checador':
         navigate('/checador/dashboard');
         break;
       default:

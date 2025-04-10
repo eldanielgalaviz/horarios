@@ -141,7 +141,7 @@ const AsignacionHorarios: React.FC = () => {
   });
   
   // Función para manejar cambios en el formulario
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<any>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
